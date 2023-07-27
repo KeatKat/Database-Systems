@@ -1,0 +1,251 @@
+SQL> -- Example of query that accesses the index horizontally to get
+SQL> -- the required information (Full scan and Fast full index scan).
+SQL> -- With Fast full index scans, the system accesses the index only
+SQL> -- to retrieve the required information because all the required
+SQL> -- information are available in the index.
+SQL> --
+SQL> set echo on
+SQL> set feedback on
+SQL> --
+SQL> -- Generate execution plan of a query without a 'where' clause.
+SQL> explain plan for
+  2  select l_orderkey, l_linenumber, l_quantity, l_tax
+  3  from lineitem;
+
+Explained.
+
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 98068815                                                                           
+                                                                                                    
+------------------------------------------------------------------------------                      
+| Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |                      
+------------------------------------------------------------------------------                      
+|   0 | SELECT STATEMENT  |          |  1945K|    96M| 12151   (1)| 00:00:01 |                      
+|   1 |  TABLE ACCESS FULL| LINEITEM |  1945K|    96M| 12151   (1)| 00:00:01 |                      
+------------------------------------------------------------------------------                      
+                                                                                                    
+Note                                                                                                
+-----                                                                                               
+   - dynamic statistics used: dynamic sampling (level=2)                                            
+
+12 rows selected.
+
+SQL> --
+SQL> -- Since there is no 'where' clause, the system performs a full
+SQL> -- table scan to retrieve all rows.
+SQL> --
+SQL> -- Generate execution plan of a query without a 'where' clause
+SQL> -- but require to order the output by l_quantity and l_tax.
+SQL> explain plan for
+  2  select l_orderkey, l_linenumber, l_quantity, l_tax
+  3  from lineitem
+  4  order by l_quantity, l_tax;
+
+Explained.
+
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 1823825887                                                                         
+                                                                                                    
+---------------------------------------------------------------------------------------             
+| Id  | Operation          | Name     | Rows  | Bytes |TempSpc| Cost (%CPU)| Time     |             
+---------------------------------------------------------------------------------------             
+|   0 | SELECT STATEMENT   |          |  1945K|    96M|       | 37181   (1)| 00:00:02 |             
+|   1 |  SORT ORDER BY     |          |  1945K|    96M|   119M| 37181   (1)| 00:00:02 |             
+|   2 |   TABLE ACCESS FULL| LINEITEM |  1945K|    96M|       | 12151   (1)| 00:00:01 |             
+---------------------------------------------------------------------------------------             
+                                                                                                    
+Note                                                                                                
+-----                                                                                               
+   - dynamic statistics used: dynamic sampling (level=2)                                            
+
+13 rows selected.
+
+SQL> --
+SQL> -- Since there is no 'where' clause and the system needs to
+SQL> -- present the output in a specified order, the system performs
+SQL> -- a full table scan to retrieve all rows and perform a sort
+SQL> -- operation on the retrieved data before presenting them.
+SQL> --
+SQL> -- Next, we create an index consisting of the attributes
+SQL> -- l_quantity and l_tax.
+SQL> create index idx1 on lineitem(l_quantity, l_tax);
+
+Index created.
+
+SQL> --
+SQL> -- Generate execution plan after the creation of index idx1
+SQL> explain plan for
+  2  select l_orderkey, l_linenumber, l_quantity, l_tax
+  3  from lineitem
+  4  order by l_quantity, l_tax;
+
+Explained.
+
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 1823825887                                                                         
+                                                                                                    
+---------------------------------------------------------------------------------------             
+| Id  | Operation          | Name     | Rows  | Bytes |TempSpc| Cost (%CPU)| Time     |             
+---------------------------------------------------------------------------------------             
+|   0 | SELECT STATEMENT   |          |  1945K|    96M|       | 37181   (1)| 00:00:02 |             
+|   1 |  SORT ORDER BY     |          |  1945K|    96M|   119M| 37181   (1)| 00:00:02 |             
+|   2 |   TABLE ACCESS FULL| LINEITEM |  1945K|    96M|       | 12151   (1)| 00:00:01 |             
+---------------------------------------------------------------------------------------             
+                                                                                                    
+Note                                                                                                
+-----                                                                                               
+   - dynamic statistics used: dynamic sampling (level=2)                                            
+
+13 rows selected.
+
+SQL> --
+SQL> -- Apparently, the system performs a full table scan to
+SQL> -- retrieve the data and sort the retrieved data before
+SQL> -- presenting them. The system assesses that the creation
+SQL> -- of the index does not help or provide a better
+SQL> -- operational cost.
+SQL> --
+SQL> -- Generate execution plan of a query with a more complex
+SQL> -- ordering requirement.
+SQL> explain plan for
+  2  select l_orderkey, l_linenumber, l_quantity, l_tax
+  3  from lineitem
+  4  order by l_quantity, l_tax, l_orderkey, l_linenumber;
+
+Explained.
+
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 1823825887                                                                         
+                                                                                                    
+---------------------------------------------------------------------------------------             
+| Id  | Operation          | Name     | Rows  | Bytes |TempSpc| Cost (%CPU)| Time     |             
+---------------------------------------------------------------------------------------             
+|   0 | SELECT STATEMENT   |          |  1945K|    96M|       | 37181   (1)| 00:00:02 |             
+|   1 |  SORT ORDER BY     |          |  1945K|    96M|   119M| 37181   (1)| 00:00:02 |             
+|   2 |   TABLE ACCESS FULL| LINEITEM |  1945K|    96M|       | 12151   (1)| 00:00:01 |             
+---------------------------------------------------------------------------------------             
+                                                                                                    
+Note                                                                                                
+-----                                                                                               
+   - dynamic statistics used: dynamic sampling (level=2)                                            
+
+13 rows selected.
+
+SQL> --
+SQL> -- The system performs a full table scan to retrieve the
+SQL> -- data and sort the retrieved data before presenting them.
+SQL> -- The system assesses that the created index does not
+SQL> -- help or provide a better operational cost.
+SQL> --
+SQL> -- Next, we create an index that can provide benefit to the
+SQL> -- query. The index consists of all the attributes that
+SQL> -- are specified in the ordering requirement.
+SQL> create index idx2 on lineitem(l_quantity, l_tax, l_orderkey, l_linenumber);
+
+Index created.
+
+SQL> --
+SQL> -- Generate execution plan after the creation of index idx1
+SQL> explain plan for
+  2  select l_orderkey, l_linenumber, l_quantity, l_tax
+  3  from lineitem
+  4  order by l_quantity, l_tax, l_orderkey, l_linenumber;
+
+Explained.
+
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 1485591117                                                                         
+                                                                                                    
+-------------------------------------------------------------------------                           
+| Id  | Operation        | Name | Rows  | Bytes | Cost (%CPU)| Time     |                           
+-------------------------------------------------------------------------                           
+|   0 | SELECT STATEMENT |      |  1945K|    96M|  6491   (1)| 00:00:01 |                           
+|   1 |  INDEX FULL SCAN | IDX2 |  1945K|    96M|  6491   (1)| 00:00:01 |                           
+-------------------------------------------------------------------------                           
+                                                                                                    
+Note                                                                                                
+-----                                                                                               
+   - dynamic statistics used: dynamic sampling (level=2)                                            
+
+12 rows selected.
+
+SQL> --
+SQL> -- The system now assesses that the newly created index provides
+SQL> -- better operational cost. Hence, the system use the index to
+SQL> -- retrieve the required data (index full scan), and present the
+SQL> -- data.
+SQL> 
+SQL> -- Generate execution plan of a query with slight different
+SQL> -- variation
+SQL> explain plan for
+  2  select l_linenumber, l_quantity, l_tax
+  3  from lineitem
+  4  order by l_quantity, l_tax, l_linenumber;
+
+Explained.
+
+SQL> --
+SQL> -- The output (selected attributes) and the ordering requirements
+SQL> -- are subset of the index (idx2). The system performs a fast
+SQL> -- full index scan to retrieve the required data from the index
+SQL> -- (without accessing the data file), sort the data and present
+SQL> -- the output.
+SQL> 
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 3333697660                                                                         
+                                                                                                    
+--------------------------------------------------------------------------------------              
+| Id  | Operation             | Name | Rows  | Bytes |TempSpc| Cost (%CPU)| Time     |              
+--------------------------------------------------------------------------------------              
+|   0 | SELECT STATEMENT      |      |  1945K|    72M|       | 21957   (1)| 00:00:01 |              
+|   1 |  SORT ORDER BY        |      |  1945K|    72M|    96M| 21957   (1)| 00:00:01 |              
+|   2 |   INDEX FAST FULL SCAN| IDX2 |  1945K|    72M|       |  2438   (1)| 00:00:01 |              
+--------------------------------------------------------------------------------------              
+                                                                                                    
+Note                                                                                                
+-----                                                                                               
+   - dynamic statistics used: dynamic sampling (level=2)                                            
+
+13 rows selected.
+
+SQL> --
+SQL> -- Drop the index after the processing
+SQL> drop index idx1;
+
+Index dropped.
+
+SQL> drop index idx2;
+
+Index dropped.
+
+SQL> -- spool off to close the spool
+SQL> spool off

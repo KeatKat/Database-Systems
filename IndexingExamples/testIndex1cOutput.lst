@@ -1,0 +1,153 @@
+SQL> -- Example of query that uses the most efficient index that
+SQL> -- helps to retrieve the required information.
+SQL> -- The system will based on statistical information available
+SQL> -- in the data dictionary to estimate the cost and predict
+SQL> -- which index can provide a better access cost to retrieve
+SQL> -- the required information.
+SQL> set echo on
+SQL> set feedback on
+SQL> --
+SQL> -- Generate execution plan before the creation of index idx1
+SQL> explain plan for
+  2  select c_custkey, c_name
+  3  from customer
+  4  where c_custkey = 123
+  5  and c_name = 'Sionggo';
+
+Explained.
+
+SQL> --
+SQL> -- The attributes c_custkey is an indexed attribute (primary
+SQL> -- key) and c_name is a non-key (without index), the system
+SQL> -- will make use of the primary key index to retrieve the
+SQL> -- necessary information by performing a unique scan followed
+SQL> -- by a table access through rowid to retrieve the non-key
+SQL> -- attribute c_name because there should be only one row that
+SQL> -- satisfies the condition specified in the 'where' clause.
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 4124449902                                                                         
+                                                                                                    
+---------------------------------------------------------------------------------------------       
+| Id  | Operation                   | Name          | Rows  | Bytes | Cost (%CPU)| Time     |       
+---------------------------------------------------------------------------------------------       
+|   0 | SELECT STATEMENT            |               |     1 |    24 |     2   (0)| 00:00:01 |       
+|*  1 |  TABLE ACCESS BY INDEX ROWID| CUSTOMER      |     1 |    24 |     2   (0)| 00:00:01 |       
+|*  2 |   INDEX UNIQUE SCAN         | CUSTOMER_PKEY |     1 |       |     1   (0)| 00:00:01 |       
+---------------------------------------------------------------------------------------------       
+                                                                                                    
+Predicate Information (identified by operation id):                                                 
+---------------------------------------------------                                                 
+                                                                                                    
+   1 - filter("C_NAME"='Sionggo')                                                                   
+   2 - access("C_CUSTKEY"=123)                                                                      
+
+15 rows selected.
+
+SQL> --
+SQL> -- An index on c_custkey and c_name is created to speed up the
+SQL> -- retrieval of the two attributes.
+SQL> --
+SQL> -- Create an index on c_name and c_phone
+SQL> create index idx1 on CUSTOMER(c_custkey, c_name);
+
+Index created.
+
+SQL> --
+SQL> -- Generate execution plan after the creation of index idx1
+SQL> explain plan for
+  2  select c_custkey, c_name
+  3  from customer
+  4  where c_custkey = 123
+  5  and c_name = 'Sionggo';
+
+Explained.
+
+SQL> --
+SQL> -- Now both the attributes c_custkey and c_name are available
+SQL> -- in the index, the system will try to retrieve both of the
+SQL> -- information from the index. Since the index was created on
+SQL> -- c_custkey and c_name which is non-unique, the system will
+SQL> -- perform an index range scan (vertical then horizontal) using
+SQL> -- the index to speed up the retrieval process. The system will
+SQL> -- first vertically traverse the index to the first keys in the
+SQL> -- leave level that starts with the value 'c_custkey - 123', then
+SQL> -- horizontally scan at the leave level of the index to retrieve
+SQL> -- both the information c_custkey and c_name.
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 3782390545                                                                         
+                                                                                                    
+-------------------------------------------------------------------------                           
+| Id  | Operation        | Name | Rows  | Bytes | Cost (%CPU)| Time     |                           
+-------------------------------------------------------------------------                           
+|   0 | SELECT STATEMENT |      |     1 |    24 |     1   (0)| 00:00:01 |                           
+|*  1 |  INDEX RANGE SCAN| IDX1 |     1 |    24 |     1   (0)| 00:00:01 |                           
+-------------------------------------------------------------------------                           
+                                                                                                    
+Predicate Information (identified by operation id):                                                 
+---------------------------------------------------                                                 
+                                                                                                    
+   1 - access("C_CUSTKEY"=123 AND "C_NAME"='Sionggo')                                               
+
+13 rows selected.
+
+SQL> --
+SQL> -- Generate execution plan after the creation of index idx1
+SQL> explain plan for
+  2  select c_custkey, c_name
+  3  from customer
+  4  where c_name = 'Sionggo';
+
+Explained.
+
+SQL> --
+SQL> -- In this example, the system will retrieve both the
+SQL> -- attributes c_custkey and c_name from the index because the
+SQL> -- index contains both the attributes. Since c_name is a non-key
+SQL> -- attribute and it is in the second order of the composite
+SQL> -- index (c_custkey, c_name), the attribute c_name alone does
+SQL> -- not provide any ordering. Hence, the system cannot use the
+SQL> -- attribute to vertically traverse the index. The system will
+SQL> -- instead perform a fast full index scan to horizontally scan
+SQL> -- the index at the leave level and retrieve the required
+SQL> -- information from the index.
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 1517492816                                                                         
+                                                                                                    
+-----------------------------------------------------------------------------                       
+| Id  | Operation            | Name | Rows  | Bytes | Cost (%CPU)| Time     |                       
+-----------------------------------------------------------------------------                       
+|   0 | SELECT STATEMENT     |      |     1 |    24 |    84   (0)| 00:00:01 |                       
+|*  1 |  INDEX FAST FULL SCAN| IDX1 |     1 |    24 |    84   (0)| 00:00:01 |                       
+-----------------------------------------------------------------------------                       
+                                                                                                    
+Predicate Information (identified by operation id):                                                 
+---------------------------------------------------                                                 
+                                                                                                    
+   1 - filter("C_NAME"='Sionggo')                                                                   
+
+13 rows selected.
+
+SQL> --
+SQL> -- Drop the index after the processing
+SQL> drop index idx1;
+
+Index dropped.
+
+SQL> --
+SQL> -- Spool off to close the spool
+SQL> spool off

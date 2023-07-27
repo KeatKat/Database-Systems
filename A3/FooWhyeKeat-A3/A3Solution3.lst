@@ -1,0 +1,249 @@
+MongoDB shell version v4.0.28
+connecting to: mongodb://127.0.0.1:4000/7432628?gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("81b80394-514b-4443-9120-2a1b1ace72ce") }
+MongoDB server version: 4.0.28
+(1) db.Subject.aggregate([{"$count":"Total number of subjects"}])
+{ "Total number of subjects" : 7 }
+
+(2) db.Subject.aggregate([{"$match":{"subject.prerequisite":{"$exists":false}}},{"$count":"Total number of subjects that have no prerequisite"}])
+{ "Total number of subjects that have no prerequisite" : 4 }
+
+(3) db.Subject.aggregate([{"$match":{"subject.credit":{"$gt":3}}},{"$count":"Total number of subjects worth more than 3cp"}])
+{ "Total number of subjects worth more than 3cp" : 1 }
+
+(4) db.Subject.aggregate([{"$sort":{"subject.credit":-1}},{"$limit":1},{"$project":{"subject.subTitle":1,"subject.type":1,"subject.credit":1,"_id":0}}])
+{ "subject" : { "subTitle" : "Final Year Project", "credit" : 6, "type" : "Core" } }
+
+(5) db.Subject.aggregate([{"$match":{"subject.credit":3}},{"$sort":{"subject.subTitle":1}},{"$project":{"subject.subTitle":1,"subject.type":1,"subject.credit":1,"_id":0}}]).pretty()
+{
+	"subject" : {
+		"subTitle" : "Algorithm and Data Structures",
+		"credit" : 3,
+		"type" : "Core"
+	}
+}
+{
+	"subject" : {
+		"subTitle" : "Algorithm and Problem Solving",
+		"credit" : 3,
+		"type" : "Core"
+	}
+}
+{
+	"subject" : {
+		"subTitle" : "Applied Programming",
+		"credit" : 3,
+		"type" : "Core"
+	}
+}
+{
+	"subject" : {
+		"subTitle" : "Database Systems",
+		"credit" : 3,
+		"type" : "Core"
+	}
+}
+{
+	"subject" : {
+		"subTitle" : "Procedural Programming",
+		"credit" : 3,
+		"type" : "Core"
+	}
+}
+{
+	"subject" : {
+		"subTitle" : "Professional Practice and Ethics",
+		"credit" : 3,
+		"type" : "Elective"
+	}
+}
+(6) db.Subject.aggregate([{"$group":{"_id":"$subject.type","count":{"$sum":1}}}])
+{ "_id" : "Elective", "count" : 1 }
+{ "_id" : "Core", "count" : 6 }
+
+(7) db.Subject.aggregate([{"$unwind":"$subject.book"},{"$match":{"subject.book.yearPub":2022}},{"$project":{"subject.book.ISBN":1,"subject.book.bookTitle":1,"_id":0}}]).pretty()
+{
+	"subject" : {
+		"book" : {
+			"ISBN" : "13:978-0-13-231681-1",
+			"bookTitle" : "Introduction to the Design and Analysis of Algorithms"
+		}
+	}
+}
+{
+	"subject" : {
+		"book" : {
+			"ISBN" : "13:978-0-273-75983-6",
+			"bookTitle" : "Starting Out With C++: From Control Structures through Objects"
+		}
+	}
+}
+{
+	"subject" : {
+		"book" : {
+			"ISBN" : "13:978-0-273-75983-6",
+			"bookTitle" : "Starting Out With C++: From Control Structures through Objects"
+		}
+	}
+}
+{
+	"subject" : {
+		"book" : {
+			"ISBN" : "13:978-0-13-231681-1",
+			"bookTitle" : "Introduction to the Design and Analysis of Algorithms"
+		}
+	}
+}
+
+(8) db.Subject.aggregate([{"$match":{"subject.subCode":"CSCI235"}},{"$project":{"subject.book.bookTitle":1,"subject.book.author":1,"subject.book.bookType":1,"_id":0}}]).pretty()
+{
+	"subject" : {
+		"book" : [
+			{
+				"bookType" : "textbook",
+				"bookTitle" : "Fundamentals of Database Systems",
+				"author" : [
+					"Ramez Elmasri",
+					"Shamkant B Navathe"
+				]
+			},
+			{
+				"bookType" : "reference",
+				"bookTitle" : "Database Management Systems",
+				"author" : [
+					"Raghur Ramakrishnan",
+					"Johannes Gehrke"
+				]
+			}
+		]
+	}
+}
+
+(9) db.Subject.aggregate([{"$unwind":"$subject.book"},{"$match":{$or:[{"subject.book.author":{"$size":2}},{"subject.book.author":{"$size":3}}]}},{"$project":{"subject.book.ISBN":1,"subject.book.bookTitle":1,"subject.book.publisher":1,"_id":0}}]).pretty()
+{
+	"subject" : {
+		"book" : {
+			"ISBN" : "13:978-0-13-231681-1",
+			"publisher" : "Pearson"
+		}
+	}
+}
+{
+	"subject" : {
+		"book" : {
+			"ISBN" : "13:978-0-136-08620-8",
+			"bookTitle" : "Fundamentals of Database Systems",
+			"publisher" : "Addison-Wesley"
+		}
+	}
+}
+{
+	"subject" : {
+		"book" : {
+			"ISBN" : "0-07-246563-8",
+			"bookTitle" : "Database Management Systems",
+			"publisher" : "McGraw-Hill"
+		}
+	}
+}
+
+(10) db.Subject.aggregate([{"$unwind":"$subject.book"},{"$sort":{"subject.subCode":1,"subject.book.publisher":-1}},{"$project":{"subject.subCode":1,"subject.book.bookTitle":1,"subject.book.publisher":1,"_id":0}}]).pretty()
+{
+	"subject" : {
+		"subCode" : "CSCI103",
+		"book" : {
+			"bookTitle" : "Introduction to the Design and Analysis of Algorithms",
+			"publisher" : "Pearson"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI103",
+		"book" : {
+			"publisher" : "Pearson"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI114",
+		"book" : {
+			"bookTitle" : "C++ Programming - Program design including data structure",
+			"publisher" : "CENGAGE Learning"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI114",
+		"book" : {
+			"bookTitle" : "Starting Out With C++: From Control Structures through Objects",
+			"publisher" : "Addison-Wesley"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI124",
+		"book" : {
+			"bookTitle" : "Data Structures Using C++",
+			"publisher" : "CENGAGE Learning"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI124",
+		"book" : {
+			"bookTitle" : "C++ Programming - Program design including data structure",
+			"publisher" : "CENGAGE Learning"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI124",
+		"book" : {
+			"bookTitle" : "Starting Out With C++: From Control Structures through Objects",
+			"publisher" : "Addison-Wesley"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI203",
+		"book" : {
+			"bookTitle" : "Introduction to Algorithms",
+			"publisher" : "The MIT Press"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI203",
+		"book" : {
+			"bookTitle" : "Introduction to the Design and Analysis of Algorithms",
+			"publisher" : "Pearson"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI235",
+		"book" : {
+			"bookTitle" : "Database Management Systems",
+			"publisher" : "McGraw-Hill"
+		}
+	}
+}
+{
+	"subject" : {
+		"subCode" : "CSCI235",
+		"book" : {
+			"bookTitle" : "Fundamentals of Database Systems",
+			"publisher" : "Addison-Wesley"
+		}
+	}
+}
+bye

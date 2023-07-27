@@ -1,0 +1,46 @@
+MongoDB shell version v4.0.28
+connecting to: mongodb://127.0.0.1:4000/7432628?gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("d9ab9a2e-3893-4972-8a74-6047b6786cb2") }
+MongoDB server version: 4.0.28
+(i) db.empeProject.aggregate([{"$unwind":"$Employee"},{"$match":{"Employee.experience":"Database Design"}},{"$project":{"Employee.fName":1,"Employee.lName":1,"_id":0}}]).pretty()
+
+{ "Employee" : { "fName" : "James", "lName" : "Bond" } }
+
+(ii) db.empeProject.aggregate([{"$unwind":"$Employee"},{"$match":{"Employee.empeId":"e002"}},{"$project":{"Employee.fName":1,"Employee.lName":1,"Employee.experience":1,"_id":0}}]).pretty()
+
+{
+	"Employee" : {
+		"fName" : "Harry",
+		"lName" : "Potter",
+		"experience" : [
+			"Data Warehouse",
+			"SQL",
+			"Spark Scala",
+			"Java Scripts"
+		]
+	}
+}
+
+(iii) db.empeProject.aggregate([{"$unwind":"$Employee"},{"$match":{"Employee.experience":{"$size":4}}},{"$project":{"Employee":1,"_id":0}}]).pretty()
+
+{
+	"Employee" : {
+		"empeId" : "e002",
+		"fName" : "Harry",
+		"lName" : "Potter",
+		"experience" : [
+			"Data Warehouse",
+			"SQL",
+			"Spark Scala",
+			"Java Scripts"
+		]
+	}
+}
+
+(iv) db.empeProject.update({"Employee.empeId":"e001"},{"$push":{"Employee.$.experience":"HIVE"}})
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+
+(v) db.empeProject.update({"Employee.empeId":"e001"},{"$set":{"Employee.$.email":"jamesbond$hotmail.com"}})
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+
+bye

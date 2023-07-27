@@ -1,0 +1,158 @@
+SQL> -- Example of query that cannot use index to speed up the
+SQL> -- retrieval of information.
+SQL> -- The system cannot use the index because the index is
+SQL> -- not unique.
+SQL> set echo on
+SQL> set feedback on
+SQL> --
+SQL> -- Generate execution plan before the creation of index idx1
+SQL> explain plan for
+  2  select c_name, c_phone
+  3  from customer;
+
+Explained.
+
+SQL> --
+SQL> -- Since both the attributes c_name and c_phone are non keys and
+SQL> -- no index has been created for the two indexes, the system
+SQL> -- will perform a full table scan to retrieve the necessary
+SQL> -- information.
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 2844954298                                                                         
+                                                                                                    
+------------------------------------------------------------------------------                      
+| Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |                      
+------------------------------------------------------------------------------                      
+|   0 | SELECT STATEMENT  |          | 45000 |  1538K|   389   (0)| 00:00:01 |                      
+|   1 |  TABLE ACCESS FULL| CUSTOMER | 45000 |  1538K|   389   (0)| 00:00:01 |                      
+------------------------------------------------------------------------------                      
+
+8 rows selected.
+
+SQL> --
+SQL> -- To speed up the retrieval of the two attributes, an index
+SQL> -- containing the two attributes is created.
+SQL> --
+SQL> -- Create an index on c_name and c_phone
+SQL> create index idx1 on CUSTOMER(c_name, c_phone);
+
+Index created.
+
+SQL> --
+SQL> -- Generate execution plan after the creation of index idx1
+SQL> explain plan for
+  2  select c_name, c_phone
+  3  from customer;
+
+Explained.
+
+SQL> --
+SQL> -- The system should use the created index to speed up the
+SQL> -- retrieval process. Since both attributes are available
+SQL> -- in the index, the system will retrieve both the attributes
+SQL> -- from the index by performing a fast full index scan.
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 1517492816                                                                         
+                                                                                                    
+-----------------------------------------------------------------------------                       
+| Id  | Operation            | Name | Rows  | Bytes | Cost (%CPU)| Time     |                       
+-----------------------------------------------------------------------------                       
+|   0 | SELECT STATEMENT     |      | 45000 |  1538K|   110   (0)| 00:00:01 |                       
+|   1 |  INDEX FAST FULL SCAN| IDX1 | 45000 |  1538K|   110   (0)| 00:00:01 |                       
+-----------------------------------------------------------------------------                       
+
+8 rows selected.
+
+SQL> --
+SQL> -- Drop the index after the processing
+SQL> drop index idx1;
+
+Index dropped.
+
+SQL> --
+SQL> -- Generate execution plan before the creation of index idx1
+SQL> explain plan for
+  2  select c_name, c_phone
+  3  from customer;
+
+Explained.
+
+SQL> --
+SQL> -- Since the attribute c_name is non keys and there is no
+SQL> -- no index has been created for the attribute, the system
+SQL> -- will perform a full table scan to retrieve the necessary
+SQL> -- information.
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 2844954298                                                                         
+                                                                                                    
+------------------------------------------------------------------------------                      
+| Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |                      
+------------------------------------------------------------------------------                      
+|   0 | SELECT STATEMENT  |          | 45000 |  1538K|   389   (0)| 00:00:01 |                      
+|   1 |  TABLE ACCESS FULL| CUSTOMER | 45000 |  1538K|   389   (0)| 00:00:01 |                      
+------------------------------------------------------------------------------                      
+
+8 rows selected.
+
+SQL> --
+SQL> -- An index on c_name is created to speed up the retrieval of
+SQL> -- the two attributes.
+SQL> --
+SQL> -- Create an index on c_name and c_phone
+SQL> create index idx1 on CUSTOMER(c_name);
+
+Index created.
+
+SQL> --
+SQL> -- Generate execution plan after the creation of index idx1
+SQL> explain plan for
+  2  select c_name, c_phone
+  3  from customer;
+
+Explained.
+
+SQL> --
+SQL> -- Since the index was created on c_name which is non-unique,
+SQL> -- the system cannot use the created index to speed up the
+SQL> -- retrieval process.The system will still perform a full
+SQL> -- table scan to retrieve the required information.
+SQL> --
+SQL> -- Display the execution plan.
+SQL> select * from table(dbms_xplan.display);
+
+PLAN_TABLE_OUTPUT                                                                                   
+----------------------------------------------------------------------------------------------------
+Plan hash value: 2844954298                                                                         
+                                                                                                    
+------------------------------------------------------------------------------                      
+| Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |                      
+------------------------------------------------------------------------------                      
+|   0 | SELECT STATEMENT  |          | 45000 |  1538K|   389   (0)| 00:00:01 |                      
+|   1 |  TABLE ACCESS FULL| CUSTOMER | 45000 |  1538K|   389   (0)| 00:00:01 |                      
+------------------------------------------------------------------------------                      
+
+8 rows selected.
+
+SQL> --
+SQL> -- Drop the index after the processing
+SQL> drop index idx1;
+
+Index dropped.
+
+SQL> -- Spool off to close the spool
+SQL> spool off

@@ -1,0 +1,58 @@
+MongoDB shell version v4.0.28
+connecting to: mongodb://127.0.0.1:4000/7432628?gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("1e12a4a1-b516-438b-a52f-1ac2180e54a6") }
+MongoDB server version: 4.0.28
+switched to db 7432628
+> db.createCollection("wkf866")
+{ "ok" : 1 }
+WriteResult({ "nInserted" : 1 })
+{ "_id" : ObjectId("637b48ea1d5de8fffbcccebb") }
+{
+	"_id" : ObjectId("637b48ea1d5de8fffbcccebc"),
+	"BRANCH" : {
+		"brchName" : "POSB",
+		"Address" : "25 Lemon St",
+		"Handles" : {
+			"ACCOUNTS" : [
+				{
+					"acctNumber" : 19812,
+					"balance" : 7000
+				},
+				{
+					"acctNumber" : 19813,
+					"balance" : 2500
+				}
+			]
+		},
+		"Employs" : {
+			"EMPLOYEES" : [
+				{
+					"eNum" : "E123",
+					"fullName" : "Johnny Tinker",
+					"spouseName" : [
+						"Marilyn Monroe"
+					]
+				}
+			]
+		}
+	}
+}
+{
+	"_id" : ObjectId("637b48ea1d5de8fffbcccebd"),
+	"CUSTOMER" : {
+		"custId" : "C213",
+		"firstName" : "James",
+		"lastName" : "Bond",
+		"Owns" : {
+			"ACCOUNTS" : [
+				{
+					"acctNumber" : 19812
+				},
+				{
+					"acctNumber" : 19813
+				}
+			]
+		}
+	}
+}
+bye
